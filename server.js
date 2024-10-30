@@ -1,5 +1,6 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
+const connection = require("./db");
 const app = express();
 app.use(express.json());
 
@@ -14,12 +15,33 @@ app.post(
     body("tags").notEmpty().withMessage("Tag is required"),
   ],
   (req, res) => {
-    console.log("Received body:", req.body);
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
-      return res.status(400).send("Error");
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    res.status(201).send("Status: Created");
+    const { title, content, category, tags } = req.body;
+    const sql =
+      "INSERT INTO posts (title, content, category, tags) VALUES (?, ?, ?, ?)";
+    const values = [title, content, category, tags];
+
+    connection.query(sql, values, (err, results) => {
+      if (err) {
+        console.error("Error inserting data:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      res.status(201).json({
+        message: "Post created successfully",
+      });
+    });
   }
 );
+
+app.get("/posts", (req, res) => {
+  const sql = "SELECT * FROM posts";
+  connection.query(sql, (err, results) => {
+    res.status(200).json(results);
+  });
+});
