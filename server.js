@@ -39,9 +39,53 @@ app.post(
   }
 );
 
+app.put(
+  "/posts/:id",
+  [
+    body("title").notEmpty().withMessage("Title is required"),
+    body("content").notEmpty().withMessage("Content is required"),
+    body("category").notEmpty().withMessage("Category is required"),
+    body("tags").notEmpty().withMessage("Tag is required"),
+  ],
+  (req, res) => {
+    const { id } = req.params;
+    const { title, content, category, tags } = req.body;
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // check if post id exists
+    const checkSql = "SELECT * FROM posts WHERE id = ?";
+    connection.query(checkSql, [id], (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: "Database error" });
+      }
+      if (results.length === 0) {
+        return res.status(404).json({ err: "Post not found" });
+      }
+      // update post id
+      const sql =
+        "UPDATE posts SET title = ?, content = ?, category = ?, tags = ? WHERE id = ?";
+      const values = [title, content, category, tags, id];
+      connection.query(sql, values, (err, results) => {
+        if (err) {
+          console.error("Error updating data:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        res.status(200).json("Post updated successfully");
+      });
+    });
+  }
+);
+
 app.get("/posts", (req, res) => {
   const sql = "SELECT * FROM posts";
   connection.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: "Database error" });
+    }
     res.status(200).json(results);
   });
 });
