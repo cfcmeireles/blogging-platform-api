@@ -24,7 +24,7 @@ app.post(
     const { title, content, category, tags } = req.body;
     const sql =
       "INSERT INTO posts (title, content, category, tags) VALUES (?, ?, ?, ?)";
-    const values = [title, content, category, tags];
+    const values = [title, content, category, JSON.stringify(tags)];
 
     connection.query(sql, values, (err, results) => {
       if (err) {
@@ -62,7 +62,7 @@ app.put(
       if (err) {
         return res.status(500).json({ error: "Database error" });
       }
-      if (results.length === 0) {
+      if (!results.length) {
         return res.status(404).json({ err: "Post not found" });
       }
       // update post id
@@ -89,7 +89,7 @@ app.delete("/posts/:id", (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Database error" });
     }
-    if (results.length === 0) {
+    if (!results.length) {
       return res.status(404).json({ err: "Post not found" });
     }
     // delete post id
@@ -99,7 +99,7 @@ app.delete("/posts/:id", (req, res) => {
         console.error("Error updating data:", err);
         return res.status(500).json({ error: "Database error" });
       }
-      res.status(200).json("Post deleted successfully");
+      res.status(204).end();
     });
   });
 });
@@ -113,7 +113,7 @@ app.get("/posts/:id", (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Database error" });
     }
-    if (results.length === 0) {
+    if (!results.length) {
       return res.status(404).json({ err: "Post not found" });
     }
     // get post id
@@ -129,10 +129,29 @@ app.get("/posts/:id", (req, res) => {
 
 app.get("/posts", (req, res) => {
   const sql = "SELECT * FROM posts";
-  connection.query(sql, (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: "Database error" });
-    }
-    res.status(200).json(results);
-  });
+  const searchTerm = req.query.term;
+  const checkSql =
+    "SELECT * FROM posts WHERE MATCH(title, content, category) AGAINST(? IN BOOLEAN MODE)";
+  const searchValue = `%${searchTerm}%`;
+
+  // check if a search term was provided and return those posts
+  if (searchTerm) {
+    connection.query(checkSql, [searchValue], (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: "Database error" });
+      }
+      if (!results.length) {
+        return res.status(400).json("No such term found");
+      }
+      res.status(200).json(results);
+    });
+    // get all posts
+  } else {
+    connection.query(sql, (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: "Database error" });
+      }
+      res.status(200).json(results);
+    });
+  }
 });
