@@ -104,6 +104,29 @@ app.delete("/posts/:id", (req, res) => {
   });
 });
 
+app.get("/posts/:id", (req, res) => {
+  const { id } = req.params;
+
+  // check if post id exists
+  const checkSql = "SELECT * FROM posts WHERE id = ?";
+  connection.query(checkSql, [id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ err: "Post not found" });
+    }
+    // get post id
+    connection.query(checkSql, [id], (err, results) => {
+      if (err) {
+        console.error("Error updating data:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+      res.status(200).json(results);
+    });
+  });
+});
+
 app.get("/posts", (req, res) => {
   const sql = "SELECT * FROM posts";
   connection.query(sql, (err, results) => {
