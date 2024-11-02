@@ -34,7 +34,7 @@ app.post(
       const getLatestPost = "SELECT * FROM posts ORDER BY id DESC LIMIT 1";
       connection.query(getLatestPost, (err, results) => {
         if (err) {
-          console.error("Error inserting data:", err);
+          console.error("Error getting created post:", err);
           return res.status(500).json({ error: "Database error" });
         }
         res.status(201).json(results);
@@ -72,13 +72,20 @@ app.put(
       // update post id
       const sql =
         "UPDATE posts SET title = ?, content = ?, category = ?, tags = ? WHERE id = ?";
-      const values = [title, content, category, tags, id];
+      const values = [title, content, category, JSON.stringify([tags]), id];
       connection.query(sql, values, (err, results) => {
         if (err) {
           console.error("Error updating data:", err);
           return res.status(500).json({ error: "Database error" });
         }
-        res.status(200).json("Post updated successfully");
+        const getUpdatedPost = "SELECT * FROM posts WHERE id = ?";
+        connection.query(getUpdatedPost, [id], (err, results) => {
+          if (err) {
+            console.error("Error getting updated post:", err);
+            return res.status(500).json({ error: "Database error" });
+          }
+          res.status(200).json(results);
+        });
       });
     });
   }
