@@ -24,16 +24,20 @@ app.post(
     const { title, content, category, tags } = req.body;
     const sql =
       "INSERT INTO posts (title, content, category, tags) VALUES (?, ?, ?, ?)";
-    const values = [title, content, category, JSON.stringify(tags)];
+    const values = [title, content, category, JSON.stringify([tags])];
 
     connection.query(sql, values, (err, results) => {
       if (err) {
         console.error("Error inserting data:", err);
         return res.status(500).json({ error: "Database error" });
       }
-
-      res.status(201).json({
-        message: "Post created successfully",
+      const getLatestPost = "SELECT * FROM posts ORDER BY id DESC LIMIT 1";
+      connection.query(getLatestPost, (err, results) => {
+        if (err) {
+          console.error("Error inserting data:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        res.status(201).json(results);
       });
     });
   }
